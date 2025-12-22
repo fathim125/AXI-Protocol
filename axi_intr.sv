@@ -5,7 +5,8 @@ interface axi_intr(input bit aclk, arst);
   bit [31:0]awaddr;
   bit [3:0] awid;
   bit [3:0] awlen;
-  bit [1:0] awburst; 			//FIXED,INCR,WRAP,Reserved
+ // bit [1:0] awburst; 			//FIXED,INCR,WRAP,Reserved
+  burst_type_t awburst;
   bit [2:0] awsize;
   bit [1:0] awlock;			//Normal,Exclusive,Locked,Reserved
   bit [3:0] awcache;
@@ -31,7 +32,9 @@ interface axi_intr(input bit aclk, arst);
   bit [31:0]araddr;
   bit [3:0] arid;				// 
   bit [3:0] arlen; 				// arlen+1=16 transfer allows at a time
-  bit [1:0] arburst; 			// FIXED,INCR,WRAP,Reserved
+  
+ //bit [1:0] arburst; 			// FIXED,INCR,WRAP,Reserved
+ burst_type_t arburst;
   bit [2:0] arsize;
   bit [1:0] arlock;				// Normal, Exclusive, Locked, Reserved
   bit [3:0] arcache;

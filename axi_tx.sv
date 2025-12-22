@@ -7,7 +7,7 @@ class axi_tx extends uvm_sequence_item;
   rand bit [31:0] addr;
   rand bit [3:0] tx_id;
   rand bit [3:0] burst_len;
-  rand bit [1:0] burst_type; // there are 3 types
+  rand burst_type_t burst_type; // there are 3 types
   rand bit [2:0] burst_size;
   rand bit [1:0] lock;		 // there are 3 types
   rand bit [3:0] cache;
@@ -25,7 +25,7 @@ class axi_tx extends uvm_sequence_item;
   `uvm_field_int(addr, UVM_ALL_ON)
   `uvm_field_int(tx_id, UVM_ALL_ON)
   `uvm_field_int(burst_len, UVM_ALL_ON)
-  `uvm_field_int(burst_type, UVM_ALL_ON)
+  `uvm_field_enum(burst_type_t, burst_type, UVM_ALL_ON)
   `uvm_field_int(burst_size, UVM_ALL_ON)
   `uvm_field_int(lock, UVM_ALL_ON)
   `uvm_field_int(cache, UVM_ALL_ON)
@@ -59,7 +59,7 @@ class axi_tx extends uvm_sequence_item;
       soft strbQ[i]== 4'hF;}
   }
       constraint soft_c{
-        soft burst_type == INCR;
+       // soft burst_type == INCR;
         soft burst_size == 2; // 4bytes/beat
         soft addr%(2**burst_size) ==0; // aligned transfer
       }  

@@ -36,7 +36,7 @@ class axi_n_wr_n_rd_seq extends axi_base_seq;
     //write transactions
     repeat(count) begin
       `uvm_do_with(req,{req.wr_rd==1;
-                        req.burst_type==FIXED;
+                       // req.burst_type==FIXED;
                        })
       tx = new req;
       txQ.push_back(tx);
