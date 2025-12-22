@@ -4,7 +4,10 @@ class axi_rsp extends uvm_component;
   virtual axi_intr vif;
   axi_tx rd_tx;
   axi_tx wr_tx;
+  
   reg [31:0] mem[*];
+  bit [31:0]  fixed_tx[$];
+  
   function void build ();
     if(!uvm_resource_db#(virtual axi_intr)::read_by_name("GLOBAL","AXI_VIF", vif, this)) begin 
       `uvm_error("RSC_DB_REPSONDER","Not able to retrieve AXI interface")
@@ -62,14 +65,22 @@ class axi_rsp extends uvm_component;
   endtask 
 
 task wr_data_phase(axi_tx tx);
-  int next_addr;
-  mem[tx.addr]=vif.wdata;
-  next_addr = tx.addr + 2**tx.burst_size;
-  `uvm_info("WRITE",$psprintf("addr = %0h, data = %0h", tx.addr, mem[tx.addr] ), UVM_MEDIUM)
-  if(tx.burst_type==WRAP && next_addr > tx.wrap_upper_addr)
-    tx.addr = tx.wrap_lower_addr;
-  else 
-	tx.addr = next_addr; 
+  if (tx.burst_type != FIXED ) begin
+    int next_addr;
+    mem[tx.addr]=vif.wdata;
+    next_addr = tx.addr + 2**tx.burst_size;
+    `uvm_info("WRITE",$psprintf("addr = %0h, data = %0h", tx.addr, mem[tx.addr] ), UVM_MEDIUM)
+    if(tx.burst_type==WRAP && next_addr > tx.wrap_upper_addr)
+      tx.addr = tx.wrap_lower_addr;
+    else 
+      tx.addr = next_addr; 
+  end
+  else begin
+
+    fixed_tx.push_back(vif.wdata);
+   `uvm_info("WRITE",$psprintf("addr = %0h, data = %0h", tx.addr, vif.wdata ), UVM_MEDIUM)
+
+  end
 endtask
 
   task wr_resp_phase(bit [3:0] id);
@@ -89,20 +100,28 @@ endtask
   endtask
 
   task rd_data_phase(axi_tx rd_tx);
-      int next_addr;
+    int next_addr;
     for(int i=0;i<=rd_tx.burst_len;i++) begin
       @(posedge vif.aclk)
       vif.rid=rd_tx.tx_id;
+      
+      if (rd_tx.burst_type != FIXED ) begin
+        vif.rdata=mem[rd_tx.addr];
+        next_addr=rd_tx.addr+2**rd_tx.burst_size;
+        `uvm_info("READ",$psprintf("addr = %0h, data = %0h", rd_tx.addr, mem[rd_tx.addr]) , UVM_MEDIUM)
 
-      vif.rdata=mem[rd_tx.addr];
-      next_addr=rd_tx.addr+2**rd_tx.burst_size;
-      `uvm_info("READ",$psprintf("addr = %0h, data = %0h", rd_tx.addr, mem[rd_tx.addr]) , UVM_MEDIUM)
-
-      if (rd_tx.burst_type == WRAP && next_addr >= rd_tx.wrap_upper_addr) 
-        rd_tx.addr = rd_tx.wrap_lower_addr; 
-      else begin
-        rd_tx.addr=next_addr;
+        if (rd_tx.burst_type == WRAP && next_addr >= rd_tx.wrap_upper_addr) 
+          rd_tx.addr = rd_tx.wrap_lower_addr; 
+        else begin
+          rd_tx.addr=next_addr;
+        end
       end
+      else begin 
+          vif.rdata = fixed_tx.pop_front();
+         `uvm_info("READ",$psprintf("addr = %0h, data = %0h", rd_tx.addr, vif.rdata) , UVM_MEDIUM)
+
+      end 
+      
       vif.rlast=(i==rd_tx.burst_len)? 1:0;
       vif.rvalid=1;
       wait(vif.rready==1);
