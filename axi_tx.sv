@@ -38,6 +38,9 @@ class axi_tx extends uvm_sequence_item;
   `uvm_object_utils_end
   `NEW_OBJ
 
+  rand bit [31:0] wrap_upper_addr;
+  rand bit [31:0] wrap_lower_addr;
+  
   function void post_randomize();
     if(wr_rd==0)
       axi_common::total_beats += burst_len +1;
@@ -60,4 +63,22 @@ class axi_tx extends uvm_sequence_item;
         soft burst_size == 2; // 4bytes/beat
         soft addr%(2**burst_size) ==0; // aligned transfer
       }  
-      endclass
+
+      constraint wrap_c{
+        (burst_type == WRAP) -> ((addr%(2**burst_size) ==0) && (burst_len inside {1,3,7,15}));
+      }
+
+    function void calculate_wrap_range();
+    	int tx_size;
+    
+    	tx_size = (2**burst_size) * (burst_len + 1);
+    	wrap_lower_addr = addr - (addr%tx_size);
+    	wrap_upper_addr = wrap_lower_addr + tx_size - 1;
+    
+    	$display("addr = %h", addr);
+        $display("wrap_lower_addr = %h", wrap_lower_addr);
+        $display("wrap_upper_addr = %h", wrap_upper_addr);
+
+
+    endfunction
+    endclass

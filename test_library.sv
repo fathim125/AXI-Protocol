@@ -17,7 +17,7 @@ class axi_base_test extends uvm_test;
   function void report();
     if(axi_common::num_matches == axi_common::total_beats
        && axi_common::num_mismatches == 0) begin 
-      `uvm_info("Status",$psprintf("%s Test Passed, num_beats = %0d, num_matches = %0d , num_mismatches%0d", get_type_name(),axi_common::total_beats, axi_common::num_matches, axi_common::num_mismatches ), UVM_MEDIUM)
+      `uvm_info("Status",$psprintf("%s Test Passed, num_beats = %0d, num_matches = %0d , num_mismatches = %0d", get_type_name(),axi_common::total_beats, axi_common::num_matches, axi_common::num_mismatches ), UVM_MEDIUM)
     end
 
     else begin 

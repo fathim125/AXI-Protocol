@@ -17,7 +17,7 @@ class axi_rsp extends uvm_component;
       @(posedge vif.aclk);
       if (vif.awvalid==1) begin 
         vif.awready=1;
-        //store all the addr phase info of the trasanction so that we can use them in the data and resp phase.
+        //store all the addr phase info of the transaction so that we can use them in the data and resp phase.
         wr_tx=new("wr_tx");
         wr_tx.addr=vif.awaddr;
         wr_tx.tx_id=vif.awid;
@@ -27,6 +27,7 @@ class axi_rsp extends uvm_component;
         wr_tx.lock=vif.awlock;	 
         wr_tx.cache=vif.awcache;
         wr_tx.prot=vif.awprot;
+        wr_tx.calculate_wrap_range();
         @(posedge vif.aclk);
         vif.awready=0;
       end
@@ -51,6 +52,7 @@ class axi_rsp extends uvm_component;
         rd_tx.lock=vif.arlock;	 
         rd_tx.cache=vif.arcache;
         rd_tx.prot=vif.arprot;
+        rd_tx.calculate_wrap_range();
         @(posedge vif.aclk);
         vif.arready=0;
         rd_data_phase(rd_tx);
@@ -59,11 +61,16 @@ class axi_rsp extends uvm_component;
     end
   endtask 
 
-  task wr_data_phase(axi_tx tx);
-    mem[tx.addr]= vif.wdata;
-    tx.addr=tx.addr+2**tx.burst_size;
-    // we need to increment
-  endtask
+task wr_data_phase(axi_tx tx);
+  int next_addr;
+  mem[tx.addr]=vif.wdata;
+  next_addr = tx.addr + 2**tx.burst_size;
+  `uvm_info("WRITE",$psprintf("addr = %0h, data = %0h", tx.addr, mem[tx.addr] ), UVM_MEDIUM)
+  if(tx.burst_type==WRAP && next_addr > tx.wrap_upper_addr)
+    tx.addr = tx.wrap_lower_addr;
+  else 
+	tx.addr = next_addr; 
+endtask
 
   task wr_resp_phase(bit [3:0] id);
     vif.bid=id;
@@ -82,11 +89,20 @@ class axi_rsp extends uvm_component;
   endtask
 
   task rd_data_phase(axi_tx rd_tx);
+      int next_addr;
     for(int i=0;i<=rd_tx.burst_len;i++) begin
       @(posedge vif.aclk)
       vif.rid=rd_tx.tx_id;
+
       vif.rdata=mem[rd_tx.addr];
-      rd_tx.addr=rd_tx.addr+2**rd_tx.burst_size;
+      next_addr=rd_tx.addr+2**rd_tx.burst_size;
+      `uvm_info("READ",$psprintf("addr = %0h, data = %0h", rd_tx.addr, mem[rd_tx.addr]) , UVM_MEDIUM)
+
+      if (rd_tx.burst_type == WRAP && next_addr >= rd_tx.wrap_upper_addr) 
+        rd_tx.addr = rd_tx.wrap_lower_addr; 
+      else begin
+        rd_tx.addr=next_addr;
+      end
       vif.rlast=(i==rd_tx.burst_len)? 1:0;
       vif.rvalid=1;
       wait(vif.rready==1);
@@ -101,6 +117,7 @@ class axi_rsp extends uvm_component;
     vif.rlast=0;
     vif.rvalid=0;
   endtask
+  
 endclass
 
 
